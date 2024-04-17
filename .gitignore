@@ -1,0 +1,5 @@
+.venv
+.venvs
+
+*.pyc
+secrets.toml

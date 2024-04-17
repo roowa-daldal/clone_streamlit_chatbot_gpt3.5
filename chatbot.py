@@ -1,6 +1,14 @@
 import streamlit as st
-import time
-st.title("G-Bot")
+from openai import OpenAI
+
+st.title("ChatGPT-like clone")
+
+# Set OpenAI API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+# Set a default model
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -11,31 +19,23 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# React to user input
-if prompt := st.chat_input("무엇이든 물어보세요!"):
-    # Display user message in chat message container
-    st.chat_message("user").markdown(prompt)
+# Accept user input
+if prompt := st.chat_input("What is up?"):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    response = f"AI 서칭 결과: [{prompt}](https://www.google.com/search?q={prompt})"
-    # Display assistant response in chat message container
-
-    with st.status("Wait for response...", expanded=True) as status:
-
-        st.write("1. Ask AI & RAG engine...")
-        time.sleep(1)
-        st.write("2. Get response...")
-        time.sleep(1)
-        st.write("3. Now make a response for you!")
-        time.sleep(1)
-        status.update(label="Response!", state="complete", expanded=False)
-    st.success('Done!')
+# Display assistant response in chat message container
     with st.chat_message("assistant"):
-        st.markdown(response)
-        st.toast('Hooray!', icon='🎉')
-        st.balloons()
-    time.sleep(2)
-    st.snow()
-    # Add assistant response to chat history
+        stream = client.chat.completions.create(
+            model=st.session_state["openai_model"],
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            stream=True,
+        )
+        response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
